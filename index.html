@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Britannia RGP System</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root { 
+      --britannia-red: #D21F3C; 
+      --britannia-yellow: #FFC72C; 
+      --britannia-blue: #005596;
+      --light-bg: #f4f6f9; 
+      --success-color: #28a745;
+      --warning-color: #ffc107;
+      --info-color: #17a2b8;
+    }
+
+    body { 
+      height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+      font-family: 'Poppins', sans-serif; 
+      background-color: var(--light-bg); 
+      overflow-x: hidden; 
+    }
+
+    #login-screen { 
+      height: 100vh; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      background-color: var(--light-bg); 
+      position: fixed; 
+      width: 100%; 
+      z-index: 1000; 
+      top: 0; 
+      left: 0;
+    }
+    .login-card { 
+      background: white; 
+      padding: 2.5rem; 
+      border-radius: 15px; 
+      width: 400px; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+      border: 1px solid #eee;
+    }
+
+    .app-header {
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      padding: 10px 20px;
+      z-index: 100;
+      height: 80px;
+    }
+    .header-center-logo {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .logo-img { max-height: 60px; object-fit: contain; }
+    .page-title { font-weight: 700; color: var(--britannia-red); font-size: 1.2rem; margin: 0; text-transform: uppercase; letter-spacing: 1px; line-height: 1.2; }
+
+    #app-container { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .main-wrapper { flex: 1; overflow-y: auto; padding: 20px; height: 100%; }
+    .nav-column { padding-right: 15px; border-right: 1px solid #eee; height: 100%; overflow-y: auto; }
+
+    .nav-btn { height: 55px; border-radius: 8px; font-weight: 600; border: none; color: white; display: flex; flex-direction: row; align-items: center; justify-content: start; padding-left: 10px; transition: all 0.2s; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 10px; font-size: 0.9rem; }
+    .nav-btn i { font-size: 1.3rem; margin-right: 10px; width: 30px; text-align: center;}
+    .nav-btn:hover { filter: brightness(1.1); transform: translateX(3px); }
+
+    .bg-create { background: #28a745; } 
+    .bg-return { background: #6610f2; }
+    .bg-pending { background: #17a2b8; }
+    .bg-extend { background: #e83e8c; } 
+    .bg-total { background: #20c997; }
+    .bg-analytics { background: var(--britannia-blue); } 
+    .bg-overdue { background: var(--britannia-red); }
+
+    .metric-tile, .analytics-widget { cursor: pointer; transition: transform 0.2s; border-radius: 8px; border: 1px solid #ddd; height: 100px; padding: 10px 15px; position: relative; background: white; box-shadow: 0 1px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; }
+    .metric-tile:hover, .analytics-widget:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .metric-tile h3, .analytics-widget h3 { font-size: 1.8rem; font-weight: 700; margin: 0; line-height: 1; }
+    .metric-tile h6, .analytics-widget h6 { font-size: 0.85rem; font-weight: 600; color: #777; margin-bottom: 5px;}
+
+    .tile-total h3 { color: var(--success-color); }
+    .tile-open h3 { color: var(--warning-color); }
+    .tile-closed h3 { color: var(--info-color); }
+    .tile-overdue h3 { color: var(--britannia-red); }
+
+    #widget-total-items { color: var(--success-color); }
+    #widget-outstanding-items { color: var(--britannia-red); }
+    #widget-avg-cycle { color: var(--britannia-blue); }
+    #widget-max-extension { color: var(--info-color); }
+
+    .chart-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #eee; height: 350px; position: relative; margin-top: 10px; }
+    .chart-card canvas { max-height: 100%; height: 100%; width: 100% !important; }
+
+    .view-section { height: 100%; display: none; animation: fadeIn 0.4s; padding-bottom: 50px; }
+    .table-custom th { background-color: var(--britannia-red); color: white; border: none; }
+    .table-custom tr { cursor: pointer; }
+
+    .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .status-Open { background: #d4edda; color: #155724; }
+    .status-Overdue { background: #f8d7da; color: #721c24; }
+    .status-Closed { background: #d1ecf1; color: #0c5460; }
+
+    .item-list-cell { font-size: 0.75rem; line-height: 1.3; }
+    .qty-cell { font-size: 0.75rem; text-align: center; }
+
+    .rgp-no-col { min-width: 100px; }
+    .date-col { min-width: 90px; }
+    .dept-col { min-width: 100px; } 
+    .details-col { min-width: 150px; } 
+    .vendor-col { min-width: 150px; } 
+    .manager-col { min-width: 120px; } 
+    .exp-date-col { min-width: 100px; }
+    .return-date-col { min-width: 100px; } 
+    .qty-col { min-width: 80px; text-align: center; }
+    .action-col { width: 100px; }
+
+    .editable-cell { cursor: pointer; }
+    .editable-cell:hover { background-color: #fffacd; }
+
+    .modal-editable { cursor: pointer; padding: 2px 5px; border-bottom: 1px dotted #ccc; display: inline-block; }
+    .modal-editable:hover { background-color: #fffacd; }
+
+    .filter-dates { display: flex; gap: 8px; align-items: center; }
+
+    @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes slideInLeft { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeInScale { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    #view-dashboard .nav-btn { animation: slideInLeft 450ms ease both; }
+    #view-dashboard .metric-tile { animation: slideInUp 500ms ease both; }
+    #view-dashboard .chart-card { animation: fadeInScale 550ms ease both; }
+
+    .btn, .btn-sm, .btn-lg { padding: 0.45rem 0.9rem !important; font-size: 0.95rem !important; line-height: 1.2 !important; }
+  </style>
+</head>
+<body>
+
+  <div id="login-screen">
+    <div class="login-card text-center">
+      <div style="height: 60px; margin-bottom: 1.5rem;">
+        <img class="logo-img" alt="Britannia" src="https://www.britannia.co.in/_next/image?url=https%3A%2F%2Fmedia.britannia.co.in%2FBritannia_Logo_fcce3225c0.png&w=1080&q=100">
+      </div>
+      <h4 class="mb-4 text-secondary">Maintenance RGP System</h4>
+      <div class="form-floating mb-3">
+        <input type="text" id="username" class="form-control" placeholder="Username">
+        <label>Username</label>
+      </div>
+      <div class="form-floating mb-4">
+        <input type="password" id="password" class="form-control" placeholder="Password">
+        <label>Password</label>
+      </div>
+      <button onclick="attemptLogin()" class="btn btn-danger w-100 py-2 fs-5">Login</button>
+    </div>
+  </div>
+
+  <div id="app-container" style="display: none;">
+    <header class="app-header d-flex justify-content-between align-items-center position-relative">
+      <div class="d-flex align-items-center">
+        <button onclick="goBack()" class="btn btn-outline-secondary btn-sm me-3" id="btn-home" style="display:none;"><i class="fa fa-arrow-left"></i></button>
+        <div id="header-title" class="page-title">RGP DASHBOARD</div>
+      </div>
+
+      <div class="header-center-logo">
+        <img id="britanniaLogo" class="logo-img" alt="Britannia Logo" src="https://www.britannia.co.in/_next/image?url=https%3A%2F%2Fmedia.britannia.co.in%2FBritannia_Logo_fcce3225c0.png&w=1080&q=100" style="cursor:pointer;">
+      </div>
+
+      <div style="width: 150px;" class="text-end">
+        <button onclick="location.reload()" class="btn btn-sm btn-danger"><i class="fa fa-sign-out-alt"></i> Logout</button>
+      </div>
+    </header>
+
+    <div class="container-fluid main-wrapper">
+      <div id="view-dashboard" class="view-section active">
+        <div class="row h-100">
+          <div class="col-md-2 nav-column">
+            <h5 class="text-muted mb-3 ps-1">Navigation</h5>
+            <button class="nav-btn bg-create" onclick="navigateTo('create')" id="nav-create"><i class="fa fa-plus-circle"></i> Create RGP</button>
+            <button class="nav-btn bg-return" onclick="navigateTo('return')" id="nav-return"><i class="fa fa-undo"></i> Return Entry</button>
+            <button class="nav-btn bg-pending" onclick="navigateTo('pending', 'OpenOrOverdue')"><i class="fa fa-clock"></i> Pending List</button>
+            <button class="nav-btn bg-extend" onclick="navigateTo('extend')" id="nav-extend"><i class="fa fa-calendar-plus"></i> Extend RGP</button>
+            <button class="nav-btn bg-total" onclick="navigateTo('total')"><i class="fa fa-table-list"></i> Total List</button>
+            <button class="nav-btn bg-analytics" onclick="navigateTo('analytics')"><i class="fa fa-chart-pie"></i> Analytics</button>
+            <button class="nav-btn bg-overdue" onclick="navigateTo('overdue', 'Overdue')"><i class="fa fa-bell"></i> Overdue List</button>
+          </div>
+
+          <div class="col-md-10 ps-4">
+            <h5 class="text-secondary fw-bold mb-3">RGP Key Metrics</h5>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <div class="card metric-tile tile-total" onclick="navigateTo('total')">
+                  <h6>Total RGPs</h6>
+                  <h3 id="metric-total">0</h3>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card metric-tile tile-open" onclick="navigateTo('pending', 'Open')">
+                  <h6>Open RGPs</h6>
+                  <h3 id="metric-open">0</h3>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card metric-tile tile-closed" onclick="navigateTo('total', 'Closed')">
+                  <h6>Closed RGPs</h6>
+                  <h3 id="metric-closed">0</h3>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card metric-tile tile-overdue" onclick="navigateTo('overdue', 'Overdue')">
+                  <h6>Overdue RGPs</h6>
+                  <h3 id="metric-overdue">0</h3>
+                </div>
+              </div>
+            </div>
+
+            <h5 class="text-muted mb-3 mt-4">Live Analytics (Open RGPs)</h5>
+
+            <div class="row g-4">
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h6 class="text-center text-secondary">Top 5 Vendors (Open RGPs)</h6>
+                  <canvas id="chartVendor"></canvas>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h6 class="text-center text-secondary">Top 5 Users (Open RGPs)</h6>
+                  <canvas id="chartSentBy"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div id="view-create" class="view-section container">
+        <div class="card shadow-sm border-0">
+          <div class="card-body p-4">
+            <form id="createRgpForm">
+              <div class="row mb-3">
+                <div class="col-md-4"><label class="form-label text-muted">RGP Number</label><input type="text" id="rgpNo" class="form-control fw-bold" required></div>
+                <div class="col-md-4"><label class="form-label text-muted">RGP Date</label><input type="date" id="rgpDate" class="form-control" required></div>
+                <div class="col-md-4"><label class="form-label text-muted">Exp. Return Date</label><input type="date" id="expDate" class="form-control" required></div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6"><label class="form-label text-muted">Department Name</label><input type="text" id="department" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label text-muted">HOD/Manager Name</label><input type="text" id="manager" class="form-control" required></div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6"><label class="form-label text-muted">Sent By</label><input type="text" id="sentBy" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label text-muted">Receiver / Vendor</label><input type="text" id="vendor" class="form-control" required></div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-muted">No. of Items</label>
+                <input type="number" id="itemCount" class="form-control w-25" min="1" value="1">
+              </div>
+              <table class="table table-bordered align-middle">
+                <thead class="table-light"><tr><th>Material Description</th><th>Quantity</th><th>Unit</th></tr></thead>
+                <tbody id="itemsContainer"></tbody>
+              </table>
+              <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-light" onclick="goHome()">Cancel</button>
+                <button type="submit" class="btn btn-success px-4"><i class="fa fa-save me-2"></i>Save RGP</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-list" class="view-section container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 id="list-subtitle" class="text-muted">Records</h5>
+          <div class="d-flex gap-2">
+            <button onclick="exportTableToExcel('dataTable', 'rgp_data')" class="btn btn-outline-success"><i class="fa fa-file-excel"></i> Export Excel</button>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-3 align-items-center">
+          <div class="col-md-3">
+            <input type="text" id="listSearch" class="form-control" placeholder="Search RGP, Vendor, Item...">
+          </div>
+          <div class="col-md-2" id="deptFilterDiv" style="display:none;">
+            <select id="deptFilter" class="form-select">
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div class="col-md-2" id="managerFilterDiv" style="display:none;">
+            <select id="managerFilter" class="form-select">
+              <option value="">All Managers</option>
+            </select>
+          </div>
+          <div class="col-md-2" id="statusFilterDiv" style="display:none;">
+            <select id="statusFilter" class="form-select">
+              <option value="">All Statuses</option>
+              <option value="Open">Open</option>
+              <option value="Closed">Closed</option>
+              <option value="Overdue">Overdue</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <div class="filter-dates">
+              <input type="date" id="listFromDate" class="form-control form-control-sm" placeholder="From" title="From">
+              <input type="date" id="listToDate" class="form-control form-control-sm" placeholder="To" title="To">
+              <button onclick="performListSearch()" class="btn btn-primary">Search</button>
+              <button onclick="resetListFilters()" class="btn btn-secondary">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0" id="dataTable">
+              <thead>
+                <tr>
+                  <th class="rgp-no-col">RGP No</th>
+                  <th class="date-col">RGP Date</th>
+                  <th class="dept-col">Department</th>
+                  <th class="details-col">Material Description</th>
+                  <th class="vendor-col">Sent By</th>
+                  <th class="manager-col">Manager</th>
+                  <th class="vendor-col">Vendor / Receiver</th>
+                  <th class="exp-date-col">Exp. Return Date</th>
+                  <th class="return-date-col">Return Date</th>
+                  <th class="qty-col">Initial Qty</th>
+                  <th class="qty-col">Returned Qty</th>
+                  <th class="qty-col">Remaining Qty</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="listBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-return" class="view-section container-fluid">
+        <div class="card p-4 shadow-sm border-0 mb-4">
+          <label class="form-label text-muted">Search RGP / Vendor / Material Description</label>
+          <div class="d-flex gap-2 align-items-center">
+            <input type="text" id="returnSearchRgp" class="form-control form-control-lg" placeholder="Type to filter the list below...">
+            <input type="date" id="returnFromDate" class="form-control form-control-lg" style="max-width:170px;" placeholder="From" title="From">
+            <input type="date" id="returnToDate" class="form-control form-control-lg" style="max-width:170px;" placeholder="To" title="To">
+            <button onclick="performReturnSearch()" class="btn btn-primary">Search</button>
+            <button onclick="resetReturnFilters()" class="btn btn-secondary">Clear</button>
+          </div>
+        </div>
+
+        <h6 class="text-muted mb-3">Open RGPs Awaiting Return (Click a row to enter return quantities):</h6>
+
+        <div class="card shadow-sm border-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0" id="returnTable">
+              <thead>
+                <tr>
+                  <th class="rgp-no-col">RGP No</th>
+                  <th class="date-col">RGP Date</th>
+                  <th class="dept-col">Department</th>
+                  <th class="details-col">Material Description</th>
+                  <th class="vendor-col">Sent By</th>
+                  <th class="manager-col">Manager</th>
+                  <th class="vendor-col">Vendor / Receiver</th>
+                  <th class="exp-date-col">Exp. Return Date</th>
+                  <th class="return-date-col">Return Date</th>
+                  <th class="qty-col">Initial Qty</th>
+                  <th class="qty-col">Returned Qty</th>
+                  <th class="qty-col">Remaining Qty</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="returnListBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="returnEntryArea" style="display:none;" class="card p-4 shadow-sm border-0 mt-4">
+          <h5 id="returnRgpHeader" class="text-primary mb-3"></h5>
+
+          <div class="mb-3">
+            <label for="materialReturnDate" class="form-label text-muted">Material Return Date</label>
+            <input type="date" id="materialReturnDate" class="form-control w-25" required>
+          </div>
+
+          <table class="table">
+            <thead class="table-light"><tr><th>Material</th><th>Initial Qty</th><th>Returned</th><th>Outstanding</th><th>Return Now</th></tr></thead>
+            <tbody id="returnItemsBody"></tbody>
+          </table>
+          <div class="text-end">
+            <button onclick="submitReturn()" class="btn btn-primary"><i class="fa fa-check-circle me-2"></i>Save Return Entry</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-extend" class="view-section container-fluid">
+        <div class="card p-4 shadow-sm border-0 mb-4">
+          <label class="form-label text-muted">Search RGP / Vendor / Sent By</label>
+          <div class="d-flex gap-2 align-items-center">
+            <input type="text" id="extendSearchRgp" class="form-control form-control-lg" placeholder="Type to filter the list below...">
+            <input type="date" id="extendFromDate" class="form-control form-control-lg" style="max-width:170px;" placeholder="From" title="From">
+            <input type="date" id="extendToDate" class="form-control form-control-lg" style="max-width:170px;" placeholder="To" title="To">
+            <button onclick="performExtendSearch()" class="btn btn-primary">Search</button>
+            <button onclick="resetExtendFilters()" class="btn btn-secondary">Clear</button>
+          </div>
+        </div>
+
+        <h6 class="text-muted mb-3">Open RGPs for Extension (Click row for details):</h6>
+        <div class="card shadow-sm border-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0" id="extendTable">
+              <thead>
+                <tr>
+                  <th class="rgp-no-col">RGP No</th>
+                  <th class="date-col">RGP Date</th>
+                  <th class="dept-col">Department</th>
+                  <th class="details-col">Material Description</th>
+                  <th class="vendor-col">Sent By</th>
+                  <th class="manager-col">Manager</th>
+                  <th class="vendor-col">Vendor / Receiver</th>
+                  <th class="exp-date-col">Exp. Return Date</th>
+                  <th class="return-date-col">Return Date</th>
+                  <th class="qty-col">Initial Qty</th>
+                  <th class="qty-col">Returned Qty</th>
+                  <th class="qty-col">Remaining Qty</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="extendListBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="extendFormArea" class="card p-4 shadow-sm border-0 bg-light mt-4" style="display:none;">
+          <h5 class="text-danger mb-3">Extending: <span id="extendRgpId"></span></h5>
+          <div class="row">
+            <div class="col-md-6"><label class="form-label">New Return Date</label><input type="date" id="newExtendDate" class="form-control"></div>
+            <div class="col-md-6"><label class="form-label">Reason for Extension</label><input type="text" id="extendReason" class="form-control"></div>
+          </div>
+          <button onclick="submitExtension()" class="btn btn-warning mt-3 text-dark fw-bold">Update Extension Date</button>
+        </div>
+      </div>
+
+      <div id="view-analytics" class="view-section container">
+        <h5 class="text-secondary fw-bold mb-4">Detailed RGP Analytics (All Records)</h5>
+
+        <div class="row mb-4 align-items-end">
+          <div class="col-md-3">
+            <label for="analyticsDeptFilter" class="form-label text-muted">Filter by Department</label>
+            <select id="analyticsDeptFilter" class="form-select">
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted">From</label>
+            <input type="date" id="analyticsFromDate" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted">To</label>
+            <input type="date" id="analyticsToDate" class="form-control">
+          </div>
+          <div class="col-md-3 d-flex gap-2">
+            <button class="btn btn-primary" onclick="applyAnalyticsFilters()">Apply Filter</button>
+            <button class="btn btn-secondary" onclick="clearAnalyticsFilters()">Clear Filters</button>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="card analytics-widget" id="widgetTotalItemsCard" onclick="navigateTo('total','widget:MaterialCount')">
+              <h6>Total Items Moved</h6>
+              <div id="widget-total-items" class="fw-bold">0</div>
+              <div id="widget-total-items-units" class="small text-muted"></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card analytics-widget" id="widgetOutstandingCard" onclick="navigateTo('total','widget:OpenItemCount')">
+              <h6>Outstanding Items</h6>
+              <div id="widget-outstanding-items" class="fw-bold">0</div>
+              <div id="widget-outstanding-items-units" class="small text-muted"></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card analytics-widget" onclick="navigateTo('total', null, true, { widget: 'AvgCycleTime' })">
+              <h6>Avg. Cycle Time (Days)</h6>
+              <h3 id="widget-avg-cycle">0</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card analytics-widget" onclick="navigateTo('total', null, true, { widget: 'MaxExtensions' })">
+              <h6>Max Extensions (RGP No.)</h6>
+              <h3 id="widget-max-extension">N/A</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="chart-card">
+              <h6 class="text-center text-secondary">RGP Status Distribution</h6>
+              <div style="width: 90%; height: 90%; margin: 0 auto;">
+                <canvas id="chartStatus"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="chart-card">
+              <h6 class="text-center text-secondary">RGP Creation Over Time (Last 12 Months)</h6>
+              <canvas id="chartDateDistribution"></canvas>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="chart-card">
+              <h6 class="text-center text-secondary">Top 5 Vendors (Open RGPs)</h6>
+              <canvas id="chartVendorFull"></canvas>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="chart-card">
+              <h6 class="text-center text-secondary">Top 5 Users (Open RGPs)</h6>
+              <canvas id="chartSentByFull"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-muted">Enable Live Updates (use carefully - this will open a Firestore realtime listener)</small>
+            </div>
+            <div>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="liveUpdatesToggle" onchange="toggleLiveUpdates(this.checked)">
+                <label class="form-check-label" for="liveUpdatesToggle">Live Updates</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ACTION MODAL -->
+  <div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="actionModalLabel">RGP Actions - <span id="modalRgpNo"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1">RGP Date: <span id="modalRgpDate"></span> | Exp. Return Date: <span id="modalExpDate"></span> | Status: <span id="modalStatus"></span></p>
+          <p class="mb-1">Department: <span id="modalDepartment"></span> | Vendor: <span id="modalVendor"></span></p>
+          <p>Sent By: <span id="modalSentBy"></span> | Manager: <span id="modalManager"></span></p>
+
+          <h6 class="mt-3">Material Details</h6>
+          <table class="table table-bordered table-sm">
+            <thead class="table-light">
+              <tr>
+                <th>Description (Unit)</th> 
+                <th>Initial Qty</th> 
+                <th>Returned Qty</th> 
+                <th>Remaining Qty</th>
+              </tr>
+            </thead>
+            <tbody id="modalItemsBody"></tbody>
+          </table>
+
+          <div class="d-flex justify-content-end gap-3 mt-4">
+            <button class="btn btn-info" id="btnEditModal" data-rgp-id="" onclick="editRgp(this.dataset.rgpId)" data-bs-dismiss="modal"><i class="fa fa-edit me-2"></i>Edit RGP</button>
+            <button class="btn btn-warning" id="btnExtendModal" data-rgp-id="" data-rgp-no="" onclick="promptExtension(this.dataset.rgpId, this.dataset.rgpNo)" disabled><i class="fa fa-calendar-plus me-2"></i>Extend RGP</button>
+            <button class="btn btn-primary" id="btnReturnModal" data-rgp-id="" onclick="navigateToReturn(this.dataset.rgpId)" disabled><i class="fa fa-undo me-2"></i>Enter Return</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT RGP MODAL -->
+  <div class="modal fade" id="editRgpModal" tabindex="-1" aria-labelledby="editRgpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title" id="editRgpModalLabel">Edit RGP - <span id="editModalRgpNo"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editRgpForm">
+            <input type="hidden" id="editRgpId">
+            <div class="row mb-3">
+              <div class="col-md-4"><label class="form-label text-muted">RGP Number</label><input type="text" id="editRgpNo" class="form-control fw-bold" required></div>
+              <div class="col-md-4"><label class="form-label text-muted">RGP Date</label><input type="date" id="editRgpDate" class="form-control" required></div>
+              <div class="col-md-4"><label class="form-label text-muted">Exp. Return Date</label><input type="date" id="editExpDate" class="form-control" required></div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6"><label class="form-label text-muted">Department Name</label><input type="text" id="editDepartment" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label text-muted">HOD/Manager Name</label><input type="text" id="editManager" class="form-control" required></div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6"><label class="form-label text-muted">Sent By</label><input type="text" id="editSentBy" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label text-muted">Receiver / Vendor</label><input type="text" id="editVendor" class="form-control" required></div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4"><label class="form-label text-muted">Return Date</label><input type="date" id="editReturnDate" class="form-control"></div>
+              <div class="col-md-4"><label class="form-label text-muted">Extensions</label><input type="number" id="editExtensions" class="form-control" min="0" readonly></div>
+              <div class="col-md-4"><label class="form-label text-muted">Status</label><input type="text" id="editStatusDisplay" class="form-control" readonly></div>
+            </div>
+
+            <h6 class="mt-4 mb-3 text-secondary">Material Details (Edit Quantities/Details)</h6>
+            <table class="table table-bordered align-middle">
+              <thead class="table-light"><tr><th>Material Description</th><th>Quantity</th><th>Unit</th></tr></thead>
+              <tbody id="editItemsContainer"></tbody>
+            </table>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-info px-4 text-white"><i class="fa fa-save me-2"></i>Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyCdkXlsPqTqRFrvzsVRtXy-tElXziLUjK8",
+    authDomain: "rgpdashbid1.firebaseapp.com",
+    projectId: "rgpdashbid1",
+    storageBucket: "rgpdashbid1.firebasestorage.app",
+    messagingSenderId: "807531684156",
+    appId: "1:807531684156:web:8afe38be695c6056237e39",
+    measurementId: "G-PTNFNMJEXG"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  let db = null;
+  try { db = getFirestore(app); console.log("Firestore initialized"); } catch (e) { console.warn("Firestore init failed", e); }
+
+  // STATE
+  let rgpRecords = [];
+  let rgpIdCounter = 1001;
+  let currentUserRole = null;
+  let currentUsername = null;
+  let currentView = 'dashboard';
+  let currentFilterOverride = null;
+  const chartInstances = {};
+  const navHistory = [];
+  let realtimeUnsubscribe = null;
+  let analyticsFromDate = '';
+  let analyticsToDate = '';
+  const colorPalette = ['#005596', '#D21F3C', '#FFC72C', '#28a745', '#6610f2'];
+
+  // UTILITIES
+  function formatDate(dateString) {
+    if (!dateString) return '-';
+    const parts = dateString.split('-');
+    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return dateString;
+  }
+  function showSuccessToast(title) {
+    Swal.fire({ icon: 'success', title, toast: true, position: 'bottom-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+  }
+
+  // Local fallback
+  function saveRgpsToLocalStorage() {
+    if (!db) {
+      localStorage.setItem('rgpRecords', JSON.stringify(rgpRecords));
+      localStorage.setItem('rgpIdCounter', rgpIdCounter);
+    }
+  }
+  function loadRgpsFromLocalStorage() {
+    if (!db) {
+      const storedRecords = localStorage.getItem('rgpRecords');
+      const storedCounter = localStorage.getItem('rgpIdCounter');
+      if (storedRecords) rgpRecords = JSON.parse(storedRecords);
+      if (storedCounter) rgpIdCounter = parseInt(storedCounter);
+    }
+  }
+
+  async function fetchAllRgps() {
+    if (db) {
+      try {
+        const snap = await getDocs(collection(db, "rgps"));
+        rgpRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (err) {
+        console.error("Firestore read failed, using local", err);
+        loadRgpsFromLocalStorage();
+      }
+    } else {
+      loadRgpsFromLocalStorage();
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    rgpRecords.forEach(r => {
+      const remaining = r.items.reduce((s,i)=> s + (i.qty - (i.returned||0)), 0);
+      if (remaining > 0 && r.status !== 'Closed') {
+        if (new Date(r.expDate) < new Date(today)) r.status = 'Overdue'; else r.status = 'Open';
+      }
+    });
+
+    populateListFilters();
+  }
+
+  // AUTH and initialization
+  window.attemptLogin = async () => {
+    const u = document.getElementById('username').value;
+    const p = document.getElementById('password').value;
+    if (u === 'enoffbid1' && p === 'store.bid1') {
+      currentUserRole = 'staff';
+      currentUsername = u;
+      await initializeApplication();
+    } else if (u === 'manager' && p === 'managerbid1') {
+      currentUserRole = 'manager';
+      currentUsername = u;
+      await initializeApplication();
+    } else {
+      Swal.fire('Error', 'Invalid Credentials', 'error');
+    }
+  };
+
+  async function initializeApplication() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-container').style.display = 'flex';
+    applyRBAC();
+    await goHome();
+  }
+
+  function applyRBAC() {
+    const isStaff = currentUserRole === 'staff';
+    const elCreate = document.getElementById('nav-create');
+    const elReturn = document.getElementById('nav-return');
+    const elExtend = document.getElementById('nav-extend');
+    if (elCreate) elCreate.style.display = isStaff ? 'flex' : 'none';
+    if (elReturn) elReturn.style.display = isStaff ? 'flex' : 'none';
+    if (elExtend) elExtend.style.display = isStaff ? 'flex' : 'none';
+  }
+
+  // Realtime listener
+  function startRealtimeListener() {
+    if (!db) return;
+    if (realtimeUnsubscribe) return;
+    const rgpsCollection = collection(db, "rgps");
+    realtimeUnsubscribe = onSnapshot(rgpsCollection, async (snapshot) => {
+      rgpRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const today = new Date().toISOString().split('T')[0];
+      rgpRecords.forEach(r => {
+        const remainingCount = r.items.reduce((sum, item) => sum + (item.qty - (item.returned || 0)), 0);
+        if (remainingCount > 0 && r.status !== 'Closed') {
+          if (new Date(r.expDate) < new Date(today)) r.status = 'Overdue'; else r.status = 'Open';
+        }
+      });
+      populateListFilters();
+      if (currentView === 'dashboard') loadDashboardMetrics();
+      if (currentView === 'analytics') renderDashboardMetrics(rgpRecords, true, {});
+      if (['pending','total','overdue'].includes(currentView)) loadListPage(currentView, currentFilterOverride, false);
+      if (currentView === 'return') filterReturnList();
+      if (currentView === 'extend') filterExtendList();
+    }, (error) => {
+      console.error("Realtime error", error);
+    });
+  }
+
+  function stopRealtimeListener() {
+    if (realtimeUnsubscribe) {
+      try { realtimeUnsubscribe(); } catch(e) { console.warn(e); }
+      realtimeUnsubscribe = null;
+    }
+  }
+
+  async function toggleLiveUpdates(enabled) {
+    if (enabled) {
+      Swal.fire({ icon: 'info', title: 'Live updates enabled', text: 'Real-time listener started. This may increase Firestore reads.' });
+      await fetchAllRgps();
+      startRealtimeListener();
+      if (currentView === 'analytics') renderDashboardMetrics(rgpRecords, true, {});
+      else loadDashboardMetrics();
+    } else {
+      stopRealtimeListener();
+      Swal.fire({ icon: 'info', title: 'Live updates disabled', text: 'Real-time listener stopped.' });
+      await fetchAllRgps();
+      if (currentView === 'analytics') renderDashboardMetrics(rgpRecords, true, {});
+      else loadDashboardMetrics();
+    }
+  }
+
+  // Navigation & view management
+  window.navigateTo = async (viewName, filterOverride = null, skipHistory = false, extraParams = null) => {
+    if (currentUserRole === 'manager' && (viewName === 'create' || viewName === 'return' || viewName === 'extend')) {
+      Swal.fire('Access Denied', 'Managers cannot perform RGP creation, return, or extension operations.', 'warning');
+      return;
+    }
+
+    if (currentView === 'analytics' && viewName !== 'analytics') {
+      analyticsFromDate = '';
+      analyticsToDate = '';
+      const elF = document.getElementById('analyticsFromDate'); if (elF) elF.value = '';
+      const elT = document.getElementById('analyticsToDate'); if (elT) elT.value = '';
+      const elDept = document.getElementById('analyticsDeptFilter'); if (elDept) elDept.value = '';
+    }
+
+    if (!skipHistory && currentView && currentView !== viewName) {
+      navHistory.push({ view: currentView, filter: currentFilterOverride });
+      if (navHistory.length > 50) navHistory.shift();
+    }
+
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+
+    let targetViewId;
+    if (viewName === 'return') targetViewId = 'view-return';
+    else targetViewId = ['pending','total','overdue'].includes(viewName) ? 'view-list' : 'view-' + viewName;
+
+    const target = document.getElementById(targetViewId);
+    if (target) { target.style.display = 'block'; setTimeout(() => target.classList.add('active'), 10); }
+
+    const titleEl = document.getElementById('header-title');
+    const backBtn = document.getElementById('btn-home');
+    currentView = viewName;
+    currentFilterOverride = filterOverride;
+
+    if (viewName === 'pending' || viewName === 'total' || viewName === 'overdue') {
+      if (document.getElementById('listSearch')) document.getElementById('listSearch').value = '';
+      if (document.getElementById('statusFilter')) document.getElementById('statusFilter').value = '';
+      if (document.getElementById('deptFilter')) document.getElementById('deptFilter').value = '';
+      if (document.getElementById('managerFilter')) document.getElementById('managerFilter').value = '';
+      if (document.getElementById('listFromDate')) document.getElementById('listFromDate').value = '';
+      if (document.getElementById('listToDate')) document.getElementById('listToDate').value = '';
+    } else if (viewName === 'return') {
+      if (document.getElementById('returnSearchRgp')) document.getElementById('returnSearchRgp').value = '';
+      if (document.getElementById('returnFromDate')) document.getElementById('returnFromDate').value = '';
+      if (document.getElementById('returnToDate')) document.getElementById('returnToDate').value = '';
+      document.getElementById('returnEntryArea').style.display = 'none';
+    } else if (viewName === 'extend') {
+      if (document.getElementById('extendSearchRgp')) document.getElementById('extendSearchRgp').value = '';
+      if (document.getElementById('extendFromDate')) document.getElementById('extendFromDate').value = '';
+      if (document.getElementById('extendToDate')) document.getElementById('extendToDate').value = '';
+    }
+
+    if (viewName === 'dashboard') {
+      titleEl.innerText = 'RGP DASHBOARD';
+      backBtn.style.display = 'none';
+      await loadDashboardMetrics();
+    } else {
+      backBtn.style.display = 'block';
+      const titles = {
+        'create': 'Create New RGP',
+        'return': 'Return Entry',
+        'pending': 'Pending List',
+        'extend': 'Extend RGP',
+        'total': 'Total RGP List',
+        'analytics': 'Analytics Dashboard',
+        'overdue': 'Overdue List'
+      };
+      titleEl.innerText = (titles[viewName] ? titles[viewName].toUpperCase() : viewName.toUpperCase());
+    }
+
+    if (viewName === 'create') setupCreateForm();
+    if (viewName === 'return') await loadReturnPage(filterOverride);
+    if (viewName === 'analytics') await loadDashboardMetrics(true);
+    if (['pending','total','overdue'].includes(viewName)) await loadListPage(viewName, filterOverride, true);
+    if (viewName === 'extend') await loadExtendPage(true);
+  };
+
+  window.goBack = async () => {
+    if (navHistory.length === 0) { await navigateTo('dashboard', null, true); return; }
+    const last = navHistory.pop();
+    await navigateTo(last.view, last.filter, true);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const logo = document.getElementById('britanniaLogo');
+    if (logo) logo.addEventListener('click', () => navigateTo('dashboard'));
+  });
+
+  window.goHome = async () => { await window.navigateTo('dashboard'); };
+
+  // CREATE FORM
+  function setupCreateForm() {
+    const today = new Date();
+    document.getElementById('rgpDate').value = today.toISOString().split('T')[0];
+    document.getElementById('expDate').value = today.toISOString().split('T')[0];
+    document.getElementById('itemCount').onchange = generateItemRows;
+    generateItemRows();
+    if (currentUserRole === 'staff') {
+      document.getElementById('sentBy').value = currentUsername;
+      document.getElementById('department').value = 'Maintenance';
+      document.getElementById('manager').value = 'manager';
+    }
+  }
+  function generateItemRows() {
+    const count = parseInt(document.getElementById('itemCount').value) || 1;
+    const container = document.getElementById('itemsContainer');
+    container.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      container.innerHTML += `
+        <tr>
+          <td><input type="text" class="form-control form-control-sm" name="item_desc" required></td>
+          <td><input type="number" class="form-control form-control-sm" name="item_qty" min="1" value="1" required></td>
+          <td><input type="text" class="form-control form-control-sm" name="item_unit"></td>
+        </tr>
+      `;
+    }
+  }
+  document.getElementById('createRgpForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = document.getElementById('createRgpForm');
+    const itemDescEls = form.querySelectorAll('[name="item_desc"]');
+    const itemQtyEls = form.querySelectorAll('[name="item_qty"]');
+    const itemUnitEls = form.querySelectorAll('[name="item_unit"]');
+    const items = [];
+    itemDescEls.forEach((el, i) => {
+      items.push({
+        desc: el.value.trim(),
+        qty: parseInt(itemQtyEls[i].value) || 0,
+        unit: itemUnitEls[i].value.trim(),
+        returned: 0
+      });
+    });
+    const rgpData = {
+      rgpNo: document.getElementById('rgpNo').value.trim(),
+      rgpDate: document.getElementById('rgpDate').value,
+      expDate: document.getElementById('expDate').value,
+      department: document.getElementById('department').value.trim(),
+      manager: document.getElementById('manager').value.trim(),
+      sentBy: document.getElementById('sentBy').value.trim(),
+      vendor: document.getElementById('vendor').value.trim(),
+      items: items,
+      status: 'Open',
+      returnDate: null,
+      extensions: 0
+    };
+    try {
+      if (db) {
+        await addDoc(collection(db, "rgps"), rgpData);
+        await fetchAllRgps();
+      } else {
+        rgpData.id = `RGP_${rgpIdCounter++}`;
+        rgpRecords.push(rgpData);
+        saveRgpsToLocalStorage();
+      }
+      document.getElementById('createRgpForm').reset();
+      generateItemRows();
+      showSuccessToast('RGP Created Successfully!');
+      navigateTo('dashboard');
+    } catch (err) {
+      console.error("RGP Save Error:", err);
+      Swal.fire('Error', 'Save Error: ' + err.message, 'error');
+    }
+  });
+
+  // populateListFilters, loadListPage, renderTable, filterList
+  function populateListFilters() {
+    const departments = new Set();
+    const managers = new Set();
+    rgpRecords.forEach(r => { if (r.department) departments.add(r.department); if (r.manager) managers.add(r.manager); });
+    const deptFilter = document.getElementById('deptFilter');
+    const managerFilter = document.getElementById('managerFilter');
+    const analyticsDeptFilter = document.getElementById('analyticsDeptFilter');
+    const currentDept = deptFilter ? deptFilter.value : '';
+    const currentManager = managerFilter ? managerFilter.value : '';
+    const currentAnalyticsDept = analyticsDeptFilter ? analyticsDeptFilter.value : '';
+    if (deptFilter) deptFilter.innerHTML = '<option value="">All Departments</option>';
+    if (managerFilter) managerFilter.innerHTML = '<option value="">All Managers</option>';
+    if (analyticsDeptFilter) analyticsDeptFilter.innerHTML = '<option value="">All Departments</option>';
+    Array.from(departments).sort().forEach(d => { if (deptFilter) deptFilter.innerHTML += `<option value="${d}">${d}</option>`; if (analyticsDeptFilter) analyticsDeptFilter.innerHTML += `<option value="${d}">${d}</option>`; });
+    Array.from(managers).sort().forEach(m => { if (managerFilter) managerFilter.innerHTML += `<option value="${m}">${m}</option>`; });
+    if (deptFilter) deptFilter.value = currentDept;
+    if (managerFilter) managerFilter.value = currentManager;
+    if (analyticsDeptFilter) analyticsDeptFilter.value = currentAnalyticsDept;
+  }
+
+  async function loadListPage(type, filterOverride = null, refetch = true) {
+    currentView = type;
+    if (refetch) await fetchAllRgps();
+    const statusDiv = document.getElementById('statusFilterDiv');
+    const deptDiv = document.getElementById('deptFilterDiv');
+    const managerDiv = document.getElementById('managerFilterDiv');
+    const isFilterable = ['pending','total','overdue'].includes(type);
+    statusDiv.style.display = (type === 'total') ? 'block' : 'none';
+    deptDiv.style.display = isFilterable ? 'block' : 'none';
+    managerDiv.style.display = isFilterable ? 'block' : 'none';
+    let subTitle = type === 'total' ? 'All Records' : (type === 'pending' ? 'Open & Overdue Records' : 'Overdue Records Only');
+    document.getElementById('list-subtitle').innerText = subTitle;
+    currentFilterOverride = filterOverride;
+    filterList();
+  }
+
+  window.renderTable = (data, tbodyId, type) => {
+    const tbody = document.getElementById(tbodyId);
+    tbody.innerHTML = '';
+    const isEditable = currentUsername === 'enoffbid1';
+    data.forEach(r => {
+      r.items.forEach((item, index) => {
+        const editableAttr = (field) => isEditable ? `ondblclick="makeCellEditable(this, '${r.id}', '${field}')"` : '';
+        const editableClass = isEditable ? 'editable-cell' : '';
+        const remaining = item.qty - (item.returned || 0);
+        tbody.innerHTML += `
+          <tr onclick="showActionModal('${r.id}')">
+            <td class="rgp-no-col fw-bold ${editableClass}" ${editableAttr('rgpNo')}>${r.rgpNo}</td>
+            <td class="date-col ${editableClass}" ${editableAttr('rgpDate')}>${formatDate(r.rgpDate)}</td>
+            <td class="dept-col ${editableClass}" ${editableAttr('department')}>${r.department || '-'}</td>
+            <td class="item-list-cell details-col">${item.desc} (${item.unit || '-'})</td>
+            <td class="vendor-col ${editableClass}" ${editableAttr('sentBy')}>${r.sentBy}</td>
+            <td class="manager-col ${editableClass}" ${editableAttr('manager')}>${r.manager || '-'}</td>
+            <td class="vendor-col ${editableClass}" ${editableAttr('vendor')}>${r.vendor}</td>
+            <td class="exp-date-col ${editableClass}" ${editableAttr('expDate')}>${formatDate(r.expDate)}</td>
+            <td class="return-date-col">${r.returnDate ? formatDate(r.returnDate) : '-'}</td>
+            <td class="qty-col">${item.qty}</td>
+            <td class="qty-col">${item.returned || 0}</td>
+            <td class="qty-col">${remaining}</td>
+            <td><span class="status-badge status-${r.status}">${r.status}</span></td>
+          </tr>
+        `;
+      });
+    });
+  };
+
+  window.filterList = (useRefetch = false) => {
+    const term = (document.getElementById('listSearch') && document.getElementById('listSearch').value) ? document.getElementById('listSearch').value.toLowerCase() : '';
+    const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+    const deptFilter = document.getElementById('deptFilter') ? document.getElementById('deptFilter').value : '';
+    const managerFilter = document.getElementById('managerFilter') ? document.getElementById('managerFilter').value : '';
+    const fromDate = document.getElementById('listFromDate') ? document.getElementById('listFromDate').value : '';
+    const toDate = document.getElementById('listToDate') ? document.getElementById('listToDate').value : '';
+    let filteredRgps = rgpRecords.slice();
+    if (fromDate) filteredRgps = filteredRgps.filter(r => r.rgpDate >= fromDate);
+    if (toDate) filteredRgps = filteredRgps.filter(r => r.rgpDate <= toDate);
+    if (currentView === 'pending' || currentFilterOverride === 'OpenOrOverdue') filteredRgps = filteredRgps.filter(r => r.status === 'Open' || r.status === 'Overdue');
+    else if (currentView === 'overdue' || currentFilterOverride === 'Overdue') filteredRgps = filteredRgps.filter(r => r.status === 'Overdue');
+
+    if (currentFilterOverride && typeof currentFilterOverride === 'string') {
+      const fo = currentFilterOverride;
+      if (fo.startsWith('vendor:')) {
+        const vendorName = decodeURIComponent(fo.split(':')[1] || '').toLowerCase();
+        filteredRgps = filteredRgps.filter(r => (r.vendor || '').toLowerCase() === vendorName);
+      } else if (fo.startsWith('sentBy:')) {
+        const sentByName = decodeURIComponent(fo.split(':')[1] || '').toLowerCase();
+        filteredRgps = filteredRgps.filter(r => (r.sentBy || '').toLowerCase() === sentByName);
+      } else if (fo.startsWith('status:')) {
+        const statusName = decodeURIComponent(fo.split(':')[1] || '');
+        filteredRgps = filteredRgps.filter(r => r.status === statusName);
+      } else if (fo.startsWith('daterange:')) {
+        const parts = fo.split(':')[1] || '';
+        const [f, t] = parts.split('|');
+        if (f) filteredRgps = filteredRgps.filter(r => r.rgpDate >= f);
+        if (t) filteredRgps = filteredRgps.filter(r => r.rgpDate <= t);
+      } else if (fo === 'OpenOrOverdue') {
+        filteredRgps = filteredRgps.filter(r => r.status === 'Open' || r.status === 'Overdue');
+      } else if (fo.startsWith('widget:')) {
+        const widget = fo.split(':')[1] || '';
+        if (widget === 'OpenItemCount') {
+          filteredRgps = filteredRgps.filter(r => {
+            const remaining = r.items.reduce((s,i)=> s + (i.qty - (i.returned||0)), 0);
+            return remaining > 0;
+          });
+        } else if (widget === 'MaterialCount') {
+          // no extra RGP-level filter
+        }
+      }
+    }
+
+    if (statusFilter) filteredRgps = filteredRgps.filter(r => r.status === statusFilter);
+    if (deptFilter) filteredRgps = filteredRgps.filter(r => r.department === deptFilter);
+    if (managerFilter) filteredRgps = filteredRgps.filter(r => r.manager === managerFilter);
+
+    if (term && term.length) {
+      filteredRgps = filteredRgps.filter(r => {
+        const matchesRgpProps = (r.rgpNo || '').toLowerCase().includes(term) || (r.vendor || '').toLowerCase().includes(term) || (r.sentBy || '').toLowerCase().includes(term) || ((r.department || '').toLowerCase().includes(term)) || ((r.manager || '').toLowerCase().includes(term)) || formatDate(r.rgpDate).includes(term) || formatDate(r.expDate).includes(term);
+        const matchesItemDesc = r.items.some(item => (item.desc || '').toLowerCase().includes(term) || ((item.unit || '').toLowerCase().includes(term)));
+        return matchesRgpProps || matchesItemDesc;
+      });
+    }
+
+    renderTable(filteredRgps, 'listBody', currentView);
+  };
+
+  window.performListSearch = async () => { await fetchAllRgps(); filterList(); };
+  window.resetListFilters = () => {
+    if (document.getElementById('listSearch')) document.getElementById('listSearch').value = '';
+    if (document.getElementById('statusFilter')) document.getElementById('statusFilter').value = '';
+    if (document.getElementById('deptFilter')) document.getElementById('deptFilter').value = '';
+    if (document.getElementById('managerFilter')) document.getElementById('managerFilter').value = '';
+    if (document.getElementById('listFromDate')) document.getElementById('listFromDate').value = '';
+    if (document.getElementById('listToDate')) document.getElementById('listToDate').value = '';
+    currentFilterOverride = null;
+    filterList();
+  };
+
+  // ACTION MODAL
+  window.showActionModal = (rgpId) => {
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (!rgp) return;
+    document.getElementById('modalRgpNo').innerText = rgp.rgpNo;
+    document.getElementById('modalRgpDate').innerText = formatDate(rgp.rgpDate);
+    document.getElementById('modalExpDate').innerText = formatDate(rgp.expDate);
+    document.getElementById('modalDepartment').innerText = rgp.department || '-';
+    document.getElementById('modalStatus').innerHTML = `<span class="status-badge status-${rgp.status}">${rgp.status}</span>`;
+    document.getElementById('modalVendor').innerText = rgp.vendor;
+    document.getElementById('modalSentBy').innerText = rgp.sentBy;
+    document.getElementById('modalManager').innerText = rgp.manager || '';
+    const tbody = document.getElementById('modalItemsBody');
+    tbody.innerHTML = '';
+    let outstandingItems = false;
+    rgp.items.forEach(item => {
+      const remaining = item.qty - (item.returned || 0);
+      if (remaining > 0) outstandingItems = true;
+      tbody.innerHTML += `<tr><td>${item.desc} (${item.unit || '-'})</td><td>${item.qty}</td><td>${item.returned || 0}</td><td><span class="text-${remaining > 0 ? 'danger' : 'success'}">${remaining}</span></td></tr>`;
+    });
+
+    const btnExtend = document.getElementById('btnExtendModal');
+    const btnReturn = document.getElementById('btnReturnModal');
+    const btnEdit = document.getElementById('btnEditModal');
+
+    btnExtend.dataset.rgpId = rgpId;
+    btnExtend.dataset.rgpNo = rgp.rgpNo;
+    btnReturn.dataset.rgpId = rgpId;
+    btnEdit.dataset.rgpId = rgpId;
+
+    const isStaff = currentUserRole === 'staff';
+    const canAct = outstandingItems && isStaff;
+    btnExtend.disabled = !canAct;
+    btnReturn.disabled = !canAct;
+    btnEdit.disabled = !isStaff;
+
+    const actionModal = new bootstrap.Modal(document.getElementById('actionModal'));
+    actionModal.show();
+  };
+
+  // INLINE EDIT
+  window.makeCellEditable = (cell, rgpId, field) => {
+    if (currentUsername !== 'enoffbid1') {
+      return Swal.fire('Access Denied', 'Only the enoffbid1 user can edit records inline.', 'warning');
+    }
+    if (cell.querySelector('input')) return;
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (!rgp) return;
+    let rawValue = rgp[field] || '';
+    const originalDisplayValue = cell.innerText.trim();
+    let inputType = 'text';
+    if (field.includes('Date')) inputType = 'date';
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.className = 'form-control form-control-sm';
+    input.value = rawValue;
+    input.style.minWidth = '100px';
+    input.onblur = () => saveInlineEdit(cell, rgpId, field, input.value.trim(), originalDisplayValue);
+    input.onkeypress = (e) => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } };
+    cell.dataset.originalDisplayValue = originalDisplayValue;
+    cell.innerHTML = '';
+    cell.appendChild(input);
+    input.focus();
+  };
+
+  window.saveInlineEdit = async (cell, rgpId, field, newValue, originalDisplayValue) => {
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (!rgp) return;
+    const valueToSave = field.includes('Date') && newValue === '' ? null : newValue;
+    let currentDisplayValue = originalDisplayValue;
+    if (valueToSave === null || valueToSave === '') currentDisplayValue = '-';
+    else if (field.includes('Date')) currentDisplayValue = formatDate(valueToSave);
+    else currentDisplayValue = valueToSave;
+    if (valueToSave === rgp[field]) { cell.innerText = currentDisplayValue; return; }
+    const updateData = { [field]: valueToSave };
+    if (field === 'expDate' && valueToSave) {
+      const today = new Date().toISOString().split('T')[0];
+      const isOverdueNow = new Date(valueToSave) < new Date(today);
+      if (isOverdueNow && rgp.status === 'Open') updateData.status = 'Overdue';
+      else if (!isOverdueNow && rgp.status === 'Overdue') updateData.status = 'Open';
+    }
+    try {
+      if (db) {
+        const rgpRef = doc(db, "rgps", rgpId);
+        await updateDoc(rgpRef, updateData);
+        await fetchAllRgps();
+      } else {
+        const rgpIndex = rgpRecords.findIndex(r => r.id === rgpId);
+        rgpRecords[rgpIndex] = { ...rgpRecords[rgpIndex], ...updateData };
+        saveRgpsToLocalStorage();
+      }
+      Object.assign(rgp, updateData);
+      cell.innerText = currentDisplayValue;
+      showSuccessToast('Record Updated');
+      if (currentView === 'dashboard') loadDashboardMetrics();
+      if (currentView === 'analytics') renderDashboardMetrics(rgpRecords, true, {});
+      if (['pending','total','overdue'].includes(currentView)) filterList();
+      if (currentView === 'return') filterReturnList();
+      if (currentView === 'extend') filterExtendList();
+    } catch (err) {
+      console.error("Inline Edit Save Error:", err);
+      Swal.fire('Error', 'Update failed: ' + err.message, 'error');
+      cell.innerText = originalDisplayValue;
+    }
+  };
+
+  // EDIT RGP (modal)
+  window.editRgp = (rgpId) => {
+    if (currentUserRole !== 'staff') {
+      return Swal.fire('Access Denied', 'Only staff users can edit RGP records.', 'warning');
+    }
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (!rgp) return Swal.fire('Error', 'RGP not found.', 'error');
+    document.getElementById('editRgpId').value = rgp.id;
+    document.getElementById('editModalRgpNo').innerText = rgp.rgpNo;
+    document.getElementById('editRgpNo').value = rgp.rgpNo;
+    document.getElementById('editRgpDate').value = rgp.rgpDate;
+    document.getElementById('editExpDate').value = rgp.expDate;
+    document.getElementById('editDepartment').value = rgp.department || '';
+    document.getElementById('editManager').value = rgp.manager || '';
+    document.getElementById('editSentBy').value = rgp.sentBy;
+    document.getElementById('editVendor').value = rgp.vendor;
+    document.getElementById('editReturnDate').value = rgp.returnDate || '';
+    document.getElementById('editExtensions').value = rgp.extensions || 0;
+    document.getElementById('editStatusDisplay').value = rgp.status || '';
+    const itemsContainer = document.getElementById('editItemsContainer');
+    itemsContainer.innerHTML = '';
+    rgp.items.forEach((item, index) => {
+      const returned = item.returned || 0;
+      itemsContainer.innerHTML += `
+        <tr>
+          <td><input type="text" class="form-control form-control-sm" name="item_desc" data-index="${index}" value="${item.desc}" required></td>
+          <td><input type="number" class="form-control form-control-sm" name="item_qty" data-index="${index}" value="${item.qty}" min="${returned}" required></td>
+          <td><input type="text" class="form-control form-control-sm" name="item_unit" data-index="${index}" value="${item.unit || ''}"></td>
+        </tr>
+      `;
+    });
+    const editModal = new bootstrap.Modal(document.getElementById('editRgpModal'));
+    editModal.show();
+  };
+
+  document.getElementById('editRgpForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    saveRgpEdit();
+  });
+
+  window.saveRgpEdit = async () => {
+    const rgpId = document.getElementById('editRgpId').value;
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (!rgp) return Swal.fire('Error', 'RGP not found for saving.', 'error');
+    const form = document.getElementById('editRgpForm');
+    const itemDescs = form.querySelectorAll('[name="item_desc"]');
+    const itemQtys = form.querySelectorAll('[name="item_qty"]');
+    const itemUnits = form.querySelectorAll('[name="item_unit"]');
+    const newItems = [];
+    for (let i = 0; i < itemDescs.length; i++) {
+      const desc = itemDescs[i].value.trim();
+      const qty = parseInt(itemQtys[i].value) || 0;
+      const unit = itemUnits[i].value.trim();
+      const originalItem = rgp.items.find((_, index) => index === i);
+      if (qty < (originalItem.returned || 0)) {
+        return Swal.fire('Error', `Initial quantity for item ${desc} cannot be less than the already returned quantity (${originalItem.returned || 0}).`, 'error');
+      }
+      newItems.push({ desc, qty, unit, returned: originalItem.returned || 0 });
+    }
+    const updatedData = {
+      rgpNo: document.getElementById('editRgpNo').value.trim(),
+      rgpDate: document.getElementById('editRgpDate').value,
+      expDate: document.getElementById('editExpDate').value,
+      department: document.getElementById('editDepartment').value.trim(),
+      manager: document.getElementById('editManager').value.trim(),
+      sentBy: document.getElementById('editSentBy').value.trim(),
+      vendor: document.getElementById('editVendor').value.trim(),
+      items: newItems
+    };
+    const manualReturnDate = document.getElementById('editReturnDate').value;
+    if (manualReturnDate) updatedData.returnDate = manualReturnDate;
+    else updatedData.returnDate = null;
+    const itemsRemaining = newItems.some(item => item.qty !== (item.returned || 0));
+    const today = new Date().toISOString().split('T')[0];
+    let newStatus = rgp.status;
+    if (!itemsRemaining) {
+      newStatus = 'Closed';
+      if (!updatedData.returnDate) updatedData.returnDate = today;
+    } else if (new Date(updatedData.expDate) < new Date(today)) {
+      newStatus = 'Overdue';
+      updatedData.returnDate = null;
+    } else {
+      newStatus = 'Open';
+      updatedData.returnDate = null;
+    }
+    updatedData.status = newStatus;
+    try {
+      if (db) {
+        const rgpRef = doc(db, "rgps", rgpId);
+        await updateDoc(rgpRef, updatedData);
+        await fetchAllRgps();
+      } else {
+        const rgpIndex = rgpRecords.findIndex(r => r.id === rgpId);
+        rgpRecords[rgpIndex] = { ...rgpRecords[rgpIndex], ...updatedData };
+        saveRgpsToLocalStorage();
+      }
+      const editModal = bootstrap.Modal.getInstance(document.getElementById('editRgpModal'));
+      if (editModal) editModal.hide();
+      showSuccessToast('RGP Updated Successfully!');
+      if (currentView === 'dashboard') loadDashboardMetrics();
+      else if (['pending','total','overdue'].includes(currentView)) loadListPage(currentView, currentFilterOverride, false);
+      else if (currentView === 'return') loadReturnPage(null, false);
+      else if (currentView === 'extend') loadExtendPage(false);
+    } catch (err) {
+      console.error("RGP Edit Save Error:", err);
+      Swal.fire('Error', 'Save Error: ' + err.message, 'error');
+    }
+  };
+
+  // EXTEND
+  window.promptExtension = (rgpId, rgpNo) => {
+    const actionModal = bootstrap.Modal.getInstance(document.getElementById('actionModal'));
+    if (actionModal) actionModal.hide();
+    navigateTo('extend');
+    setTimeout(() => {
+      if (rgpId) selectForExtend(rgpId, rgpNo);
+    }, 150);
+  };
+
+  async function loadExtendPage(refetch = true) {
+    currentView = 'extend';
+    document.getElementById('extendFormArea').style.display = 'none';
+    if (document.getElementById('extendSearchRgp')) document.getElementById('extendSearchRgp').value = '';
+    if (refetch) await fetchAllRgps();
+    filterExtendList();
+  }
+
+  window.filterExtendList = () => {
+    const termEl = document.getElementById('extendSearchRgp');
+    const term = termEl ? termEl.value.toLowerCase() : '';
+    const fromDate = document.getElementById('extendFromDate') ? document.getElementById('extendFromDate').value : '';
+    const toDate = document.getElementById('extendToDate') ? document.getElementById('extendToDate').value : '';
+    const openRgps = rgpRecords.filter(r => (r.status === 'Open' || r.status === 'Overdue'));
+    const filteredRgps = openRgps.filter(r => {
+      if (fromDate && r.rgpDate < fromDate) return false;
+      if (toDate && r.rgpDate > toDate) return false;
+      const matchesRgpProps = (r.rgpNo || '').toLowerCase().includes(term) || (r.vendor || '').toLowerCase().includes(term) || (r.sentBy || '').toLowerCase().includes(term) || (r.department && r.department.toLowerCase().includes(term)) || (r.manager && r.manager.toLowerCase().includes(term));
+      const matchesItemDesc = r.items.some(item => (item.desc || '').toLowerCase().includes(term) || ((item.unit || '').toLowerCase().includes(term)));
+      return matchesRgpProps || matchesItemDesc;
+    });
+    renderTable(filteredRgps, 'extendListBody', 'extend');
+  };
+
+  window.performExtendSearch = async () => { await fetchAllRgps(); filterExtendList(); };
+  function resetExtendFilters() {
+    if (document.getElementById('extendSearchRgp')) document.getElementById('extendSearchRgp').value = '';
+    if (document.getElementById('extendFromDate')) document.getElementById('extendFromDate').value = '';
+    if (document.getElementById('extendToDate')) document.getElementById('extendToDate').value = '';
+    loadExtendPage(true);
+  }
+
+  let selectedRgpForExtension = null;
+  window.selectForExtend = (rgpId, rgpNo) => {
+    selectedRgpForExtension = rgpId;
+    document.getElementById('extendRgpId').innerText = rgpNo;
+    document.getElementById('extendFormArea').style.display = 'block';
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (rgp) {
+      const currentDate = new Date(rgp.expDate);
+      currentDate.setDate(currentDate.getDate() + 1);
+      document.getElementById('newExtendDate').value = currentDate.toISOString().split('T')[0];
+    }
+    document.getElementById('extendReason').value = '';
+  };
+
+  window.submitExtension = async () => {
+    const rgpId = selectedRgpForExtension;
+    const newExtendDate = document.getElementById('newExtendDate').value;
+    const extendReason = document.getElementById('extendReason').value.trim();
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (!rgpId || !newExtendDate || !extendReason) return Swal.fire('Error', 'Please fill all extension fields.', 'error');
+    const today = new Date().toISOString().split('T')[0];
+    let newStatus = 'Open';
+    if (new Date(newExtendDate) < new Date(today)) newStatus = 'Overdue';
+    const updateData = { expDate: newExtendDate, extensions: (rgp.extensions || 0) + 1, status: newStatus };
+    try {
+      if (db) {
+        const rgpRef = doc(db, "rgps", rgpId);
+        await updateDoc(rgpRef, updateData);
+        await fetchAllRgps();
+      } else {
+        const rgpIndex = rgpRecords.findIndex(r => r.id === rgpId);
+        rgpRecords[rgpIndex] = { ...rgpRecords[rgpIndex], ...updateData };
+        saveRgpsToLocalStorage();
+      }
+      Swal.fire('Success', 'Extension Updated', 'success');
+      document.getElementById('extendFormArea').style.display = 'none';
+      loadExtendPage(false);
+    } catch (err) {
+      console.error("Extension Save Error:", err);
+      Swal.fire('Error', 'Extension Update Error: ' + err.message, 'error');
+    }
+  };
+
+  // RETURN
+  window.navigateToReturn = (rgpId) => {
+    const actionModal = bootstrap.Modal.getInstance(document.getElementById('actionModal'));
+    if (actionModal) actionModal.hide();
+    navigateTo('return');
+    setTimeout(() => {
+      if (rgpId) selectForReturn(rgpId);
+    }, 150);
+  }
+
+  async function loadReturnPage(rgpId = null, refetch = true) {
+    currentView = 'return';
+    document.getElementById('returnEntryArea').style.display = 'none';
+    if (document.getElementById('returnSearchRgp')) document.getElementById('returnSearchRgp').value = '';
+    if (refetch) await fetchAllRgps();
+    filterReturnList();
+    if (rgpId) selectForReturn(rgpId);
+  }
+
+  window.filterReturnList = () => {
+    const termEl = document.getElementById('returnSearchRgp');
+    const term = termEl ? termEl.value.toLowerCase() : '';
+    const fromDate = document.getElementById('returnFromDate') ? document.getElementById('returnFromDate').value : '';
+    const toDate = document.getElementById('returnToDate') ? document.getElementById('returnToDate').value : '';
+    const open = rgpRecords.filter(r => (r.status === 'Open' || r.status === 'Overdue'));
+    let filteredRgps = open.slice();
+    if (fromDate) filteredRgps = filteredRgps.filter(r => r.rgpDate >= fromDate);
+    if (toDate) filteredRgps = filteredRgps.filter(r => r.rgpDate <= toDate);
+    filteredRgps = filteredRgps.filter(r => {
+      const matchesRgpProps = (r.rgpNo || '').toLowerCase().includes(term) || (r.vendor || '').toLowerCase().includes(term) || (r.sentBy || '').toLowerCase().includes(term) || (r.department && r.department.toLowerCase().includes(term)) || (r.manager && r.manager.toLowerCase().includes(term)) || formatDate(r.rgpDate).includes(term) || formatDate(r.expDate).includes(term);
+      const matchesItemDesc = r.items.some(item => (item.desc || '').toLowerCase().includes(term) || ((item.unit || '').toLowerCase().includes(term)));
+      return matchesRgpProps || matchesItemDesc;
+    });
+    renderTable(filteredRgps, 'returnListBody', 'return');
+  };
+
+  window.performReturnSearch = async () => { await fetchAllRgps(); filterReturnList(); };
+  function resetReturnFilters() {
+    if (document.getElementById('returnSearchRgp')) document.getElementById('returnSearchRgp').value = '';
+    if (document.getElementById('returnFromDate')) document.getElementById('returnFromDate').value = '';
+    if (document.getElementById('returnToDate')) document.getElementById('returnToDate').value = '';
+    loadReturnPage(null, true);
+  }
+
+  let selectedRgpForReturn = null;
+  window.selectForReturn = (rgpId) => {
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    if (!rgp) return;
+    selectedRgpForReturn = rgpId;
+    document.getElementById('returnRgpHeader').innerText = `RGP No: ${rgp.rgpNo} | Vendor: ${rgp.vendor}`;
+    document.getElementById('returnEntryArea').style.display = 'block';
+    document.getElementById('materialReturnDate').value = new Date().toISOString().split('T')[0];
+    const itemsBody = document.getElementById('returnItemsBody');
+    itemsBody.innerHTML = '';
+    rgp.items.forEach((item, index) => {
+      const returned = item.returned || 0;
+      const outstanding = item.qty - returned;
+      if (outstanding > 0) {
+        itemsBody.innerHTML += `
+          <tr>
+            <td>${item.desc} (${item.unit || '-'})</td>
+            <td>${item.qty}</td>
+            <td>${returned}</td>
+            <td class="fw-bold text-danger">${outstanding}</td>
+            <td><input type="number" class="form-control form-control-sm return-qty-input" data-idx="${index}" min="0" max="${outstanding}" value="0"></td>
+          </tr>
+        `;
+      }
+    });
+    if (itemsBody.innerHTML === '') {
+      document.getElementById('returnEntryArea').style.display = 'none';
+      Swal.fire('Info', 'This RGP is already fully returned.', 'info');
+    }
+  };
+
+  window.submitReturn = async () => {
+    const rgpId = selectedRgpForReturn;
+    const rgp = rgpRecords.find(r => r.id === rgpId);
+    const returnDate = document.getElementById('materialReturnDate').value;
+    if (!rgpId || !returnDate) return Swal.fire('Error', 'Missing RGP ID or Return Date.', 'error');
+    const inputs = document.querySelectorAll('#returnItemsBody .return-qty-input');
+    let totalReturnedNow = 0;
+    let fullReturn = true;
+    const updatedItems = JSON.parse(JSON.stringify(rgp.items));
+    for (const input of inputs) {
+      const val = parseInt(input.value) || 0;
+      const idx = parseInt(input.dataset.idx);
+      const max = parseInt(input.max);
+      if (val < 0 || val > max) {
+        return Swal.fire('Error', `Invalid return quantity entered for item ${updatedItems[idx].desc}. Max is ${max}.`, 'error');
+      }
+      if (val > 0) totalReturnedNow += val;
+      updatedItems[idx].returned = (updatedItems[idx].returned || 0) + val;
+      if (updatedItems[idx].returned < updatedItems[idx].qty) fullReturn = false;
+    }
+    if (totalReturnedNow === 0) {
+      return Swal.fire('Warning', 'Please enter a quantity to return.', 'warning');
+    }
+    const newStatus = fullReturn ? 'Closed' : 'Open';
+    try {
+      const updatePayload = { items: updatedItems, status: newStatus };
+      if (newStatus === 'Closed') updatePayload.returnDate = returnDate;
+      if (db) {
+        const rgpRef = doc(db, "rgps", rgpId);
+        await updateDoc(rgpRef, updatePayload);
+        await fetchAllRgps();
+      } else {
+        const rgpIndex = rgpRecords.findIndex(r => r.id === rgpId);
+        rgpRecords[rgpIndex].items = updatedItems;
+        rgpRecords[rgpIndex].status = newStatus;
+        if (newStatus === 'Closed') rgpRecords[rgpIndex].returnDate = returnDate;
+        saveRgpsToLocalStorage();
+      }
+      showSuccessToast('Return Entry Saved!');
+      await loadReturnPage(null, false);
+    } catch (err) {
+      console.error("Return Save Error:", err);
+      Swal.fire('Error', 'Return Update Error: ' + err.message, 'error');
+    }
+  };
+
+  // CHARTS & ANALYTICS
+  function destroyChart(id) {
+    if (chartInstances[id]) {
+      try { chartInstances[id].destroy(); } catch(e){ console.warn(e); }
+      delete chartInstances[id];
+    }
+  }
+
+  function renderBarChart(id, data, label, colors, axis, clickConfig) {
+    destroyChart(id);
+    const labels = data.map(item => item[0]);
+    const counts = data.map(item => item[1]);
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    const bgColors = labels.map((_, i) => colors[i % colors.length]);
+    chartInstances[id] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: `Open RGPs by ${label}`, data: counts, backgroundColor: bgColors, borderColor: bgColors, borderWidth: 1 }]},
+      options: {
+        indexAxis: axis,
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { x:{beginAtZero:true}, y:{beginAtZero:true} },
+        plugins: { legend:{display:false} },
+        onClick: function(evt, activeEls) {
+          if (!activeEls.length) return;
+          const idx = activeEls[0].index;
+          const clickedLabel = this.data.labels[idx];
+          if (clickConfig && clickConfig.targetView && clickConfig.filterPrefix) {
+            const filterValue = `${clickConfig.filterPrefix}${encodeURIComponent(clickedLabel)}`;
+            navigateTo(clickConfig.targetView, filterValue);
+          }
+        }
+      }
+    });
+  }
+
+  function renderPieChart(id, data, colors, title, clickConfig) {
+    destroyChart(id);
+    const labels = data.map(d=>d[0]);
+    const counts = data.map(d=>d[1]);
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    chartInstances[id] = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: counts, backgroundColor: colors, hoverOffset: 4 }]},
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins: { legend:{position:'bottom'} },
+        onClick: function(evt, activeEls) {
+          if (!activeEls.length) return;
+          const idx = activeEls[0].index;
+          const clickedLabel = this.data.labels[idx];
+          if (clickConfig && clickConfig.targetView && clickConfig.filterPrefix) {
+            const filterValue = `${clickConfig.filterPrefix}${encodeURIComponent(clickedLabel)}`;
+            navigateTo(clickConfig.targetView, filterValue);
+          }
+        }
+      }
+    });
+  }
+
+  function renderLineChart(id, data, clickConfig) {
+    destroyChart(id);
+    const labels = data.map(d=>d[0]);
+    const counts = data.map(d=>d[1]);
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    chartInstances[id] = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{ label:'RGP Creations', data:counts, borderColor:'#005596', backgroundColor:'rgba(0,85,150,0.2)', tension:0.4, fill:true }]},
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        onClick: function(evt, activeEls) {
+          if (!activeEls.length) return;
+          const idx = activeEls[0].index;
+          const label = this.data.labels[idx];
+          if (!label) return;
+          const [year, month] = label.split('-').map(x=>parseInt(x,10));
+          if (!year || !month) return;
+          const firstDay = `${year}-${String(month).padStart(2,'0')}-01`;
+          const lastDate = new Date(year, month, 0).getDate();
+          const lastDay = `${year}-${String(month).padStart(2,'0')}-${String(lastDate).padStart(2,'0')}`;
+          if (clickConfig && clickConfig.targetView && clickConfig.filterPrefix && clickConfig.filterPrefix.startsWith('daterange:')) {
+            const filterValue = `${clickConfig.filterPrefix}${firstDay}|${lastDay}`;
+            navigateTo(clickConfig.targetView, filterValue);
+          } else {
+            navigateTo('total', `daterange:${firstDay}|${lastDay}`);
+          }
+        }
+      }
+    });
+  }
+
+  function groupItemsByUnit(records) {
+    const totalByUnit = {};
+    const outstandingByUnit = {};
+    records.forEach(r => {
+      r.items.forEach(item => {
+        const unit = (item.unit || 'nos').trim().toLowerCase() || 'nos';
+        totalByUnit[unit] = (totalByUnit[unit] || 0) + (item.qty || 0);
+        const outstanding = (item.qty || 0) - (item.returned || 0);
+        outstandingByUnit[unit] = (outstandingByUnit[unit] || 0) + Math.max(0, outstanding);
+      });
+    });
+    return { totalByUnit, outstandingByUnit };
+  }
+  function formatUnitBreakdown(mapObj) {
+    const entries = Object.entries(mapObj);
+    if (!entries.length) return '';
+    return entries.map(([u,v]) => `${u}: ${v}`).join(' • ');
+  }
+
+  function renderDashboardMetrics(data, isFullAnalytics=false, opts={}) {
+    let filtered = data.slice();
+    const dept = opts.dept ?? (isFullAnalytics ? (document.getElementById('analyticsDeptFilter').value || '') : '');
+    const fromDate = opts.fromDate ?? (isFullAnalytics ? (analyticsFromDate || document.getElementById('analyticsFromDate').value || '') : '');
+    const toDate = opts.toDate ?? (isFullAnalytics ? (analyticsToDate || document.getElementById('analyticsToDate').value || '') : '');
+
+    if (dept) filtered = filtered.filter(r => r.department === dept);
+    if (fromDate) filtered = filtered.filter(r => r.rgpDate >= fromDate);
+    if (toDate) filtered = filtered.filter(r => r.rgpDate <= toDate);
+
+    const total = filtered.length;
+    const open = filtered.filter(r => r.status === 'Open').length;
+    const closed = filtered.filter(r => r.status === 'Closed').length;
+    const overdue = filtered.filter(r => r.status === 'Overdue').length;
+    document.getElementById('metric-total').innerText = total;
+    document.getElementById('metric-open').innerText = open;
+    document.getElementById('metric-closed').innerText = closed;
+    document.getElementById('metric-overdue').innerText = overdue;
+
+    const openRgps = filtered.filter(r => r.status === 'Open' || r.status === 'Overdue');
+    const vendorCounts = {}, sentByCounts = {};
+    openRgps.forEach(r => { vendorCounts[r.vendor] = (vendorCounts[r.vendor]||0)+1; sentByCounts[r.sentBy] = (sentByCounts[r.sentBy]||0)+1; });
+    const topVendors = Object.entries(vendorCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const topSentBy = Object.entries(sentByCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    if (!isFullAnalytics) {
+      renderBarChart('chartVendor', topVendors, 'Vendor', colorPalette, 'y', { targetView:'pending', filterPrefix:'vendor:' });
+      renderBarChart('chartSentBy', topSentBy, 'User', colorPalette, 'y', { targetView:'pending', filterPrefix:'sentBy:' });
+    }
+
+    if (isFullAnalytics) {
+      const { totalByUnit, outstandingByUnit } = groupItemsByUnit(filtered);
+      const totalItems = Object.values(totalByUnit).reduce((s,v)=>s+v,0);
+      const outstandingItems = Object.values(outstandingByUnit).reduce((s,v)=>s+v,0);
+      document.getElementById('widget-total-items').innerText = totalItems.toLocaleString();
+      document.getElementById('widget-total-items-units').innerText = formatUnitBreakdown(totalByUnit);
+      document.getElementById('widget-outstanding-items').innerText = outstandingItems.toLocaleString();
+      document.getElementById('widget-outstanding-items-units').innerText = formatUnitBreakdown(outstandingByUnit);
+
+      let totalCycleTime = 0, closedRgpCount = 0, maxExtensionsRgpNo = 'N/A', maxExtensionsCount = -1;
+      filtered.forEach(rgp => {
+        if (rgp.status === 'Closed' && rgp.returnDate) {
+          const rgpDate = new Date(rgp.rgpDate), closedDate = new Date(rgp.returnDate);
+          const diff = Math.ceil(Math.abs(closedDate - rgpDate)/(1000*60*60*24));
+          totalCycleTime += diff; closedRgpCount++;
+        }
+        if ((rgp.extensions || 0) > maxExtensionsCount) { maxExtensionsCount = rgp.extensions; maxExtensionsRgpNo = `${rgp.rgpNo} (${rgp.extensions})`; }
+      });
+      document.getElementById('widget-avg-cycle').innerText = closedRgpCount > 0 ? Math.round(totalCycleTime/closedRgpCount) : 'N/A';
+      document.getElementById('widget-max-extension').innerText = maxExtensionsRgpNo;
+
+      const statusData = [['Open', open], ['Closed', closed], ['Overdue', overdue]];
+      renderPieChart('chartStatus', statusData, ['#ffc107', '#17a2b8', '#D21F3C'], 'Status Distribution', { targetView:'total', filterPrefix:'status:' });
+
+      const dateCounts = {};
+      filtered.forEach(r => {
+        const d = new Date(r.rgpDate);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        dateCounts[key] = (dateCounts[key] || 0) + 1;
+      });
+      const sortedDates = Object.entries(dateCounts).sort((a,b)=>a[0].localeCompare(b[0]));
+      const last12 = sortedDates.slice(-12);
+      renderLineChart('chartDateDistribution', last12, { targetView:'total', filterPrefix:'daterange:' });
+
+      renderBarChart('chartVendorFull', topVendors, 'Vendor', colorPalette, 'y', { targetView:'total', filterPrefix:'vendor:' });
+      renderBarChart('chartSentByFull', topSentBy, 'User', colorPalette, 'y', { targetView:'total', filterPrefix:'sentBy:' });
+    }
+  }
+
+  async function loadDashboardMetrics(isFullAnalytics=false, opts={}) {
+    await fetchAllRgps();
+    renderDashboardMetrics(rgpRecords, isFullAnalytics, opts || {});
+  }
+
+  // Analytics handlers
+  async function applyAnalyticsFilters() {
+    const fromDate = document.getElementById('analyticsFromDate').value || '';
+    const toDate = document.getElementById('analyticsToDate').value || '';
+    const dept = document.getElementById('analyticsDeptFilter').value || '';
+    analyticsFromDate = fromDate;
+    analyticsToDate = toDate;
+    await fetchAllRgps();
+    renderDashboardMetrics(rgpRecords, true, { fromDate, toDate, dept });
+  }
+
+  async function clearAnalyticsFilters() {
+    analyticsFromDate = '';
+    analyticsToDate = '';
+    const elF = document.getElementById('analyticsFromDate'); if (elF) elF.value = '';
+    const elT = document.getElementById('analyticsToDate'); if (elT) elT.value = '';
+    const elD = document.getElementById('analyticsDeptFilter'); if (elD) elD.value = '';
+    await fetchAllRgps();
+    renderDashboardMetrics(rgpRecords, true, {});
+  }
+
+  // Export to Excel - sheet name "Biscuits" and uses table_to_book with sheet name
+  window.exportTableToExcel = (tableId, filename) => {
+    const table = document.getElementById(tableId);
+    if (!table) return Swal.fire('Error', 'Table not found for export', 'error');
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Biscuits" });
+    XLSX.writeFile(wb, filename + '.xlsx');
+  };
+
+  // Expose functions for inline use (module scripts isolate scope)
+  window.applyAnalyticsFilters = applyAnalyticsFilters;
+  window.clearAnalyticsFilters = clearAnalyticsFilters;
+  window.toggleLiveUpdates = toggleLiveUpdates;
+  window.navigateTo = window.navigateTo;
+  window.navigateToReturn = window.navigateToReturn;
+  window.editRgp = window.editRgp;
+  window.promptExtension = window.promptExtension;
+  window.selectForExtend = window.selectForExtend;
+
+  // INITIAL load
+  window.onload = () => {
+    loadRgpsFromLocalStorage();
+    document.getElementById('login-screen').style.display = 'flex';
+  };
+  </script>
+</body>
+</html>
